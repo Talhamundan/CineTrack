@@ -71,12 +71,16 @@ export const getPersonDetail = async (personId) => {
 };
 
 export const getMovieDetail = async (id) => {
-    const response = await api.get(`/movie/${id}`);
+    const response = await api.get(`/movie/${id}`, {
+        params: { append_to_response: 'videos,credits', include_video_language: 'tr,en' }
+    });
     return response.data;
 };
 
 export const getTVDetail = async (id) => {
-    const response = await api.get(`/tv/${id}`);
+    const response = await api.get(`/tv/${id}`, {
+        params: { append_to_response: 'videos,credits', include_video_language: 'tr,en' }
+    });
     return response.data;
 };
 

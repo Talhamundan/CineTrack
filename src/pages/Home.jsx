@@ -8,10 +8,12 @@ import MovieModal from '../components/MovieModal.jsx';
 import Header from '../components/Header.jsx';
 import DeleteModal from '../components/DeleteModal.jsx';
 import toast from 'react-hot-toast';
+import { FaDice } from 'react-icons/fa';
 
 function Home() {
   const navigate = useNavigate(); // Hook çağrısı
   const [myList, setMyList] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState('tv');
   const [statusFilter, setStatusFilter] = useState('all');
   const [originFilter, setOriginFilter] = useState('all');
@@ -99,7 +101,24 @@ function Home() {
       statusMatch = item.status === statusFilter;
     }
     const originMatch = originFilter === 'all' ? true : originFilter === 'tr' ? item.original_language === 'tr' : item.original_language !== 'tr';
-    return typeMatch && statusMatch && originMatch;
+
+    const query = searchQuery.toLowerCase();
+    let searchMatch = true;
+
+    if (searchQuery) {
+      const title = item.title ? item.title.toLowerCase() : "";
+      const originalTitle = item.original_title ? item.original_title.toLowerCase() : "";
+      const date = item.release_date || item.first_air_date || "";
+      const year = date.split("-")[0];
+      const combinedText = `${title} ${year}`;
+
+      searchMatch = title.includes(query) ||
+        originalTitle.includes(query) ||
+        combinedText.includes(query) ||
+        year.includes(query);
+    }
+
+    return typeMatch && statusMatch && originMatch && searchMatch;
   });
 
   const sortedList = [...filteredList].sort((a, b) => {
@@ -160,38 +179,77 @@ function Home() {
     { key: 'completed', label: 'Bitirildi' },
   ];
 
+  const handleRandomPick = () => {
+    const freshContent = myList.filter(item =>
+      item.type === typeFilter &&
+      item.status !== 'completed'
+    );
+
+    if (freshContent.length === 0) {
+      toast.error('Listenizde izlenmemiş içerik kalmadı! 😅');
+      return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * freshContent.length);
+    const randomItem = freshContent[randomIndex];
+
+    navigate(`/details/${randomItem.type}/${createSlug(randomItem.tmdbId || randomItem.id, randomItem.title)}`);
+    toast.success(`🎲 Seçildi: ${randomItem.title}`);
+  };
+
   return (
     <div className="bg-black min-h-screen text-white font-sans pb-20">
 
       <Header />
 
       <div className="p-8 max-w-[1920px] mx-auto">
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-6 relative">
           <div className="bg-gray-900 p-1.5 rounded-full flex">
             <button onClick={() => { setTypeFilter('movie'); setStatusFilter('all'); setOriginFilter('all'); }} className={`px-10 py-3 rounded-full font-bold text-lg transition ${typeFilter === 'movie' ? 'bg-white text-black shadow' : 'text-gray-400 hover:text-white'}`}>Filmler</button>
             <button onClick={() => { setTypeFilter('tv'); setStatusFilter('all'); setOriginFilter('all'); }} className={`px-10 py-3 rounded-full font-bold text-lg transition ${typeFilter === 'tv' ? 'bg-white text-black shadow' : 'text-gray-400 hover:text-white'}`}>Diziler</button>
           </div>
+
+          <button
+            onClick={handleRandomPick}
+            className="absolute right-0 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20 px-4 py-3 rounded-xl font-bold transition-transform flex items-center gap-2 whitespace-nowrap"
+            title="Rastgele İçerik Seç"
+          >
+            <FaDice className="text-xl" />
+            <span className="hidden md:inline">Ne İzlesem?</span>
+          </button>
         </div>
-
-        <div className="flex flex-col md:flex-row justify-center items-center gap-6 mb-8">
-          <div className="flex gap-6 text-base">
-            <button onClick={() => setOriginFilter('all')} className={`${originFilter === 'all' ? 'text-white underline decoration-red-600 decoration-2 underline-offset-8 font-bold' : 'text-gray-500 hover:text-gray-300'}`}>Tümü</button>
-            <button onClick={() => setOriginFilter('tr')} className={`${originFilter === 'tr' ? 'text-white underline decoration-red-600 decoration-2 underline-offset-8 font-bold' : 'text-gray-500 hover:text-gray-300'}`}>Yerli Yapımlar</button>
-            <button onClick={() => setOriginFilter('foreign')} className={`${originFilter === 'foreign' ? 'text-white underline decoration-red-600 decoration-2 underline-offset-8 font-bold' : 'text-gray-500 hover:text-gray-300'}`}>Yabancı</button>
+        {/* Arama ve Sıralama */}
+        <div className="flex flex-row justify-center items-center gap-3 w-full max-w-4xl mx-auto mb-6">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Listenizde arayın..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 pl-10 text-white placeholder-gray-500 focus:border-red-600 focus:outline-none transition-colors"
+            />
+            <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
-
-
 
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
-            className="bg-gray-900 text-white px-4 py-2 rounded-lg border border-gray-700 outline-none text-sm hover:border-gray-500 cursor-pointer"
+            className="bg-gray-900 text-white px-4 py-3 rounded-xl border border-gray-700 outline-none text-sm hover:border-gray-500 cursor-pointer min-w-[200px]"
           >
             <option value="default">Sırala: Varsayılan (Durum)</option>
             <option value="score">Sırala: Puan (Yüksekten Düşüğe)</option>
             <option value="year">Sırala: Yıl (Yeniden Eskiye)</option>
             <option value="added">Sırala: Son Eklenenler</option>
           </select>
+        </div>
+
+        {/* Metin Filtreleri */}
+        <div className="flex justify-center items-center gap-6 text-sm font-medium text-gray-400 mb-8">
+          <button onClick={() => setOriginFilter('all')} className={`${originFilter === 'all' ? 'text-white underline decoration-red-600 decoration-2 underline-offset-8 font-bold' : 'hover:text-gray-300'}`}>Tümü</button>
+          <button onClick={() => setOriginFilter('tr')} className={`${originFilter === 'tr' ? 'text-white underline decoration-red-600 decoration-2 underline-offset-8 font-bold' : 'hover:text-gray-300'}`}>Yerli Yapımlar</button>
+          <button onClick={() => setOriginFilter('foreign')} className={`${originFilter === 'foreign' ? 'text-white underline decoration-red-600 decoration-2 underline-offset-8 font-bold' : 'hover:text-gray-300'}`}>Yabancı</button>
         </div>
 
         <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
@@ -292,7 +350,11 @@ function Home() {
           ))}
         </div>
 
-        {sortedList.length === 0 && <div className="text-center py-24 text-gray-500"><p className="text-2xl">Bu filtreye uygun içerik yok.</p></div>}
+        {sortedList.length === 0 && (
+          <div className="text-center py-24 text-gray-500">
+            <p className="text-2xl">{searchQuery ? "Aradığınız kriterde içerik yok." : "Bu filtreye uygun içerik yok."}</p>
+          </div>
+        )}
       </div>
 
       <MovieModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} movie={selectedItem || {}} initialData={selectedItem} onSave={handleUpdate} />

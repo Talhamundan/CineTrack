@@ -15,6 +15,7 @@ function MovieModal({ isOpen, onClose, movie, onSave, initialData }) {
     const [trailerKey, setTrailerKey] = useState(null);
     const [showPlayer, setShowPlayer] = useState(false);
     const [cast, setCast] = useState([]);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const navigate = useNavigate();
 
@@ -37,6 +38,7 @@ function MovieModal({ isOpen, onClose, movie, onSave, initialData }) {
             setShowPlayer(false);
             setTrailerKey(null);
             setCast([]);
+            setShowDeleteConfirm(false);
 
             const type = movie.media_type || movie.type || (movie.name ? 'tv' : 'movie');
             const id = movie.tmdbId || movie.id;
@@ -52,15 +54,13 @@ function MovieModal({ isOpen, onClose, movie, onSave, initialData }) {
     const handleDelete = async () => {
         if (!initialData?.docId) return;
 
-        if (window.confirm("Bu içeriği listenden kaldırmak istediğine emin misin?")) {
-            try {
-                await deleteDoc(doc(db, "user_lists", initialData.docId));
-                toast.success("Listeden çıkarıldı 👋", { icon: '🗑️', style: { background: '#333', color: '#fff' } });
-                onClose();
-            } catch (error) {
-                console.error("Silme hatası:", error);
-                toast.error("Silinirken bir hata oluştu.");
-            }
+        try {
+            await deleteDoc(doc(db, "user_lists", initialData.docId));
+            toast.success("Listeden çıkarıldı 👋", { icon: '🗑️', style: { background: '#333', color: '#fff' } });
+            onClose();
+        } catch (error) {
+            console.error("Silme hatası:", error);
+            toast.error("Silinirken bir hata oluştu.");
         }
     };
 
@@ -182,12 +182,32 @@ function MovieModal({ isOpen, onClose, movie, onSave, initialData }) {
                             </button>
 
                             {initialData && (
-                                <button
-                                    onClick={handleDelete}
-                                    className="mt-3 w-full border border-red-600 text-red-600 py-3 rounded-xl font-semibold hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <span>🗑️</span> Listemden Kaldır
-                                </button>
+                                !showDeleteConfirm ? (
+                                    <button
+                                        onClick={() => setShowDeleteConfirm(true)}
+                                        className="mt-3 w-full border border-red-600 text-red-600 py-3 rounded-xl font-semibold hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <span>🗑️</span> Listemden Kaldır
+                                    </button>
+                                ) : (
+                                    <div className="flex flex-col gap-2 mt-3 animate-fade-in">
+                                        <span className="text-sm text-center text-gray-400">Bu içerik listenizden silinecek?</span>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <button
+                                                onClick={() => setShowDeleteConfirm(false)}
+                                                className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-semibold transition-colors"
+                                            >
+                                                Vazgeç
+                                            </button>
+                                            <button
+                                                onClick={handleDelete}
+                                                className="bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-semibold transition-colors"
+                                            >
+                                                Evet, Sil
+                                            </button>
+                                        </div>
+                                    </div>
+                                )
                             )}
 
                             {cast.length > 0 && (

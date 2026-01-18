@@ -4,6 +4,7 @@ import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { getMovieDetail, getTVDetail, getCredits, GENRES } from '../services/api';
 import { createSlug } from '../utils';
+import { FaPlay, FaYoutube, FaTimes } from "react-icons/fa";
 import Header from '../components/Header.jsx';
 import MovieModal from '../components/MovieModal.jsx';
 import toast from 'react-hot-toast';
@@ -16,6 +17,8 @@ function ContentDetail() {
     const [cast, setCast] = useState([]);
     const [loading, setLoading] = useState(true);
     const [myListMap, setMyListMap] = useState({});
+    const [trailerKey, setTrailerKey] = useState(null);
+    const [showTrailer, setShowTrailer] = useState(false);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,6 +54,18 @@ function ContentDetail() {
                 ]);
                 setContent(detailData);
                 setCast(creditsData);
+
+                // FRAGMAN BULMA MANTIĞI
+                if (detailData.videos && detailData.videos.results) {
+                    const videos = detailData.videos.results;
+                    const trailer = videos.find(vid => vid.site === "YouTube" && vid.type === "Trailer" && vid.iso_639_1 === "tr")
+                        || videos.find(vid => vid.site === "YouTube" && vid.type === "Trailer" && vid.iso_639_1 === "en")
+                        || videos.find(vid => vid.site === "YouTube" && vid.type === "Trailer");
+
+                    if (trailer) {
+                        setTrailerKey(trailer.key);
+                    }
+                }
             } catch (error) {
                 console.error(error);
                 toast.error("İçerik bilgileri alınamadı.");
@@ -169,6 +184,26 @@ function ContentDetail() {
                                     <span className="text-2xl">+</span> Listeme Ekle
                                 </button>
                             )}
+
+                            {trailerKey && (
+                                <button
+                                    onClick={() => setShowTrailer(true)}
+                                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full font-bold text-lg transition flex items-center gap-2 shadow-lg hover:scale-105 transform"
+                                >
+                                    <FaYoutube className="text-2xl" />
+                                    Fragman İzle
+                                </button>
+                            )}
+
+                            <a
+                                href={`https://www.hdfilmcehennemi.com/ara/?q=${encodeURIComponent(title)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 rounded-full font-bold text-lg transition flex items-center gap-2 shadow-lg hover:scale-105 transform"
+                            >
+                                <FaPlay />
+                                Hemen İzle
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -212,6 +247,27 @@ function ContentDetail() {
                 onSave={saveMovie}
                 initialData={initialModalData}
             />
+
+            {/* TRAILER MODAL */}
+            {showTrailer && trailerKey && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+                    <div className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-gray-800">
+                        <button
+                            onClick={() => setShowTrailer(false)}
+                            className="absolute top-4 right-4 text-white bg-black/50 hover:bg-red-600 p-2 rounded-full transition-all z-10"
+                        >
+                            <FaTimes size={24} />
+                        </button>
+                        <iframe
+                            src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0`}
+                            title="Fragman"
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                        ></iframe>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

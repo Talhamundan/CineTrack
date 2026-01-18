@@ -19,6 +19,7 @@ function ActorDetail() {
     const [myListMap, setMyListMap] = useState({});
     const [sortOption, setSortOption] = useState('vote_desc');
     const [initialModalData, setInitialModalData] = useState(null);
+    const [isFavorite, setIsFavorite] = useState(false);
 
     const [selectedMovie, setSelectedMovie] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,6 +40,30 @@ function ActorDetail() {
         });
         return () => unsubscribe();
     }, [user]);
+
+    // Favorite Actor Listener
+    const [favoriteDocId, setFavoriteDocId] = useState(null);
+
+    useEffect(() => {
+        if (!user || !id) return;
+        // Query the user_actors collection for this specific user and actor
+        const q = query(
+            collection(db, "user_actors"),
+            where("userId", "==", user.uid),
+            where("id", "==", id)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+                setFavoriteDocId(snapshot.docs[0].id);
+                setIsFavorite(true);
+            } else {
+                setFavoriteDocId(null);
+                setIsFavorite(false);
+            }
+        });
+        return () => unsubscribe();
+    }, [user, id]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -85,6 +110,35 @@ function ActorDetail() {
             await deleteDoc(doc(db, "user_lists", item.docId));
             toast.success("Listeden çıkarıldı 👋", { icon: '🗑️', style: { background: '#333', color: '#fff' } });
         } catch (error) { console.error(error); toast.error("Hata oluştu"); }
+    };
+
+    const handleToggleFavorite = async () => {
+        if (!user) {
+            toast.error("Lütfen önce giriş yapın.");
+            return;
+        }
+        if (!actor) return;
+
+        try {
+            if (isFavorite && favoriteDocId) {
+                // Delete existing document based on query result
+                await deleteDoc(doc(db, "user_actors", favoriteDocId));
+                toast.success("Favorilerden çıkarıldı 💔", { style: { background: '#333', color: '#fff' } });
+            } else {
+                // Add new document with random ID (matching Actors.jsx pattern)
+                await addDoc(collection(db, "user_actors"), {
+                    userId: user.uid,
+                    id: actor.id,
+                    name: actor.name,
+                    profile_path: actor.profile_path,
+                    addedAt: new Date()
+                });
+                toast.success("Favorilere eklendi ❤️", { style: { background: '#333', color: '#fff' } });
+            }
+        } catch (error) {
+            console.error("Favori işlemi hatası:", error);
+            toast.error("İşlem başarısız.");
+        }
     };
 
     const openModal = (item) => {
@@ -143,7 +197,23 @@ function ActorDetail() {
                     </div>
 
                     <div className="text-center md:text-left flex-1">
-                        <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-4">{actor.name}</h1>
+                        <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
+                            <h1 className="text-4xl md:text-6xl font-extrabold text-white">{actor.name}</h1>
+                            {user && (
+                                <button
+                                    onClick={handleToggleFavorite}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300 ${isFavorite
+                                        ? 'bg-red-600/20 border-red-600 text-red-500'
+                                        : 'bg-white/5 border-white/20 text-gray-300 hover:bg-white/10'
+                                        }`}
+                                >
+                                    <span className="text-xl">{isFavorite ? '❤️' : '🤍'}</span>
+                                    <span className="font-medium text-sm">
+                                        {isFavorite ? 'Favorilerde' : 'Favorilere Ekle'}
+                                    </span>
+                                </button>
+                            )}
+                        </div>
                         <div className="flex flex-wrap justify-center md:justify-start gap-4 text-gray-400 mb-6 font-medium">
                             {actor.birthday && <span>🎂 {actor.birthday}</span>}
                             {actor.place_of_birth && <span>📍 {actor.place_of_birth}</span>}
