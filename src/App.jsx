@@ -4,6 +4,7 @@ import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Toaster } from 'react-hot-toast';
 import Footer from './components/Footer.jsx';
+import MobileNavbar from './components/MobileNavbar.jsx';
 
 import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
@@ -14,6 +15,8 @@ import SharedList from './pages/SharedList.jsx';
 import Actors from './pages/Actors.jsx';
 import ActorDetail from './pages/ActorDetail.jsx';
 import ContentDetail from './pages/ContentDetail.jsx'; // <--- YENİ İMPORT // <--- YENİ SAYFA // <--- YENİ
+
+import ScrollToTop from './components/ScrollToTop.jsx';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -31,6 +34,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <div className="bg-black min-h-screen text-white flex flex-col">
         <Toaster
           position="top-center"
@@ -40,6 +44,10 @@ function App() {
             success: { iconTheme: { primary: '#EF4444', secondary: 'white' } },
           }}
         />
+
+        <div className="md:hidden">
+          <MobileNavbar />
+        </div>
 
         <div className="flex-grow">
           <Routes>

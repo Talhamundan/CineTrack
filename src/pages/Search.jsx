@@ -178,10 +178,10 @@ function Search() {
         <div className="flex flex-col gap-6 mb-10">
           <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
             <div className="w-full md:w-1/2 relative mx-auto">
-              <input type="text" placeholder="Film veya Dizi Ara..." className="w-full bg-gray-900 text-white p-5 pl-14 rounded-2xl outline-none focus:ring-2 ring-red-600 border border-gray-700 transition text-xl shadow-xl placeholder-gray-500" value={queryText} onChange={(e) => { setQueryText(e.target.value); setRecommendationMode(false); }} autoFocus />
-              <span className="absolute left-5 top-1/2 transform -translate-y-1/2 text-gray-500 text-2xl">🔍</span>
+              <input type="text" placeholder="Film veya Dizi Ara..." className="w-full bg-gray-900 text-white p-3 pl-10 md:p-5 md:pl-14 rounded-2xl outline-none focus:ring-2 ring-red-600 border border-gray-700 transition text-base md:text-xl shadow-xl placeholder-gray-500" value={queryText} onChange={(e) => { setQueryText(e.target.value); setRecommendationMode(false); }} autoFocus />
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg md:text-2xl md:left-5">🔍</span>
             </div>
-            <button onClick={getSmartRecommendations} className={`px-6 py-3 rounded-xl font-bold transition flex items-center gap-2 whitespace-nowrap ${recommendationMode ? 'bg-yellow-500 text-black' : 'bg-gray-800 text-yellow-500 hover:bg-gray-700'}`}><span>✨</span> {recommendationMode ? 'Yeni Öneri' : 'Bana Öneri Ver'}</button>
+            <button onClick={getSmartRecommendations} className={`px-4 py-2 md:px-6 md:py-3 rounded-xl font-bold transition flex items-center gap-2 whitespace-nowrap text-sm md:text-base ${recommendationMode ? 'bg-yellow-500 text-black' : 'bg-gray-800 text-yellow-500 hover:bg-gray-700'}`}><span>✨</span> {recommendationMode ? 'Yeni Öneri' : 'Bana Öneri Ver'}</button>
           </div>
           {!queryText && !recommendationMode && (
             <div className="flex flex-col sm:flex-row justify-center items-center gap-6">
@@ -233,9 +233,9 @@ function Search() {
                     {item.overview && <p className="text-gray-400 text-xs line-clamp-3 mb-4 px-1 leading-relaxed">{item.overview}</p>}
                     <div className="mb-4 transform scale-105"><ContentDetails id={item.id} type={item.media_type || type} /></div>
                     {isAdded ? (
-                      <button onClick={(e) => { e.stopPropagation(); openModal(item); }} className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-bold text-lg transition flex items-center justify-center gap-2 shadow-lg group-hover:scale-105"><span className="text-2xl leading-none">✓</span><span>Listende</span></button>
+                      <button onClick={(e) => { e.stopPropagation(); openModal(item); }} className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 md:px-8 md:py-3 rounded-full font-bold text-xs md:text-lg transition flex items-center justify-center gap-2 shadow-lg group-hover:scale-105"><span className="text-sm md:text-2xl leading-none">✓</span><span>Listende</span></button>
                     ) : (
-                      <button onClick={(e) => { e.stopPropagation(); openModal(item); }} className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full font-bold text-lg transform hover:scale-105 transition flex items-center justify-center gap-2 shadow-lg"><span className="text-2xl leading-none">+</span><span>Listeme Ekle</span></button>
+                      <button onClick={(e) => { e.stopPropagation(); openModal(item); }} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 md:px-8 md:py-3 rounded-full font-bold text-xs md:text-lg transform hover:scale-105 transition flex items-center justify-center gap-2 shadow-lg"><span className="text-sm md:text-2xl leading-none">+</span><span>Listeme Ekle</span></button>
                     )}
                   </div>
                 </div>

@@ -125,7 +125,7 @@ function ContentDetail() {
             <Header />
 
             {/* HERO HERO SECTION */}
-            <div className="relative w-full h-[60vh] md:h-[80vh]">
+            <div className="relative w-full min-h-screen md:h-[80vh] md:min-h-0 flex flex-col md:block">
                 <div className="absolute inset-0">
                     <img
                         src={backdropUrl || `https://via.placeholder.com/1920x1080?text=No+Image`}
@@ -136,9 +136,9 @@ function ContentDetail() {
                     <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent"></div>
                 </div>
 
-                <div className="absolute bottom-0 left-0 w-full p-8 md:p-16 flex flex-col md:flex-row gap-10 items-end">
-                    {/* POSTER (MOBİLDE GİZLE YA DA KÜÇÜLT) */}
-                    <div className="hidden md:block w-48 lg:w-64 rounded-xl overflow-hidden shadow-2xl border border-gray-800 flex-shrink-0">
+                <div className="relative md:absolute md:bottom-0 left-0 w-full p-6 pt-24 md:p-16 flex flex-col md:flex-row gap-8 items-center md:items-end z-20">
+                    {/* POSTER (MOBİLDE GİZLE YA DA KÜÇÜLT) - Başlığın üstüne gelmemesi için z-index */}
+                    <div className="w-48 md:w-80 lg:w-96 rounded-xl overflow-hidden shadow-2xl border border-gray-800 flex-shrink-0 mx-auto md:mx-0">
                         <img
                             src={content.poster_path ? `https://image.tmdb.org/t/p/w500${content.poster_path}` : 'https://via.placeholder.com/500x750'}
                             alt={title}
@@ -147,21 +147,22 @@ function ContentDetail() {
                     </div>
 
                     {/* DETAYLAR */}
-                    <div className="flex-1 mb-6">
-                        <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-2 leading-tight">{title}</h1>
+                    <div className="flex-1 mb-6 text-center md:text-left relative z-20">
+                        <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-4 drop-shadow-lg leading-tight">{title}</h1>
                         {originalTitle && originalTitle !== title && (
-                            <p className="text-gray-400 text-lg mb-4 italic">{originalTitle}</p>
+                            <p className="text-gray-400 text-sm md:text-lg mb-4 italic">{originalTitle}</p>
                         )}
 
-                        <div className="flex flex-wrap items-center gap-4 text-sm md:text-base text-gray-300 mb-6 font-medium">
+                        <div className="grid grid-cols-2 md:flex items-center justify-center md:justify-start gap-4 md:gap-8 text-sm md:text-base text-gray-300 mb-6 font-medium">
                             {content.vote_average && (
-                                <span className="bg-yellow-500 text-black px-2 py-1 rounded font-bold">★ {content.vote_average.toFixed(1)}</span>
+                                <span className="bg-yellow-500 text-black px-2 py-1 rounded font-bold w-fit mx-auto md:mx-0">★ {content.vote_average.toFixed(1)}</span>
                             )}
-                            <span>{releaseDate?.split('-')[0]}</span>
-                            <span>•</span>
-                            <span>{runtime}</span>
-                            <span>•</span>
-                            <div className="flex gap-2">
+                            <div className="flex justify-center md:justify-start gap-4">
+                                <span>{releaseDate?.split('-')[0]}</span>
+                                <span className="hidden md:inline">•</span>
+                                <span>{runtime}</span>
+                            </div>
+                            <div className="col-span-2 flex justify-center md:justify-start gap-2">
                                 {content.genres?.map(g => (
                                     <span key={g.id} className="border border-gray-600 px-2 py-0.5 rounded-full text-xs hover:bg-white hover:text-black transition cursor-default">
                                         {g.name}
@@ -170,27 +171,27 @@ function ContentDetail() {
                             </div>
                         </div>
 
-                        <p className="text-gray-200 text-lg leading-relaxed max-w-3xl mb-8 line-clamp-4 hover:line-clamp-none transition-all">
+                        <p className="text-gray-300 text-sm md:text-lg leading-relaxed max-w-3xl mb-8 line-clamp-4 hover:line-clamp-none transition-all mx-auto md:mx-0">
                             {content.overview}
                         </p>
 
-                        <div className="flex gap-4">
+                        <div className="flex flex-wrap justify-center md:justify-start gap-3 md:gap-4">
                             {isAdded ? (
-                                <button onClick={openModal} className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-bold text-lg transition flex items-center gap-2 shadow-lg hover:scale-105 transform">
-                                    <span className="text-2xl">✎</span> Listeyi Düzenle
+                                <button onClick={openModal} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg md:rounded-full font-bold text-sm md:text-lg transition flex items-center gap-2 shadow-lg hover:scale-105 transform">
+                                    <span className="text-lg md:text-2xl">✎</span> Listeyi Düzenle
                                 </button>
                             ) : (
-                                <button onClick={openModal} className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full font-bold text-lg transition flex items-center gap-2 shadow-lg hover:scale-105 transform">
-                                    <span className="text-2xl">+</span> Listeme Ekle
+                                <button onClick={openModal} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg md:rounded-full font-bold text-sm md:text-lg transition flex items-center gap-2 shadow-lg hover:scale-105 transform">
+                                    <span className="text-lg md:text-2xl">+</span> Listeme Ekle
                                 </button>
                             )}
 
                             {trailerKey && (
                                 <button
                                     onClick={() => setShowTrailer(true)}
-                                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full font-bold text-lg transition flex items-center gap-2 shadow-lg hover:scale-105 transform"
+                                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg md:rounded-full font-bold text-sm md:text-lg transition flex items-center gap-2 shadow-lg hover:scale-105 transform"
                                 >
-                                    <FaYoutube className="text-2xl" />
+                                    <FaYoutube className="text-lg md:text-2xl" />
                                     Fragman İzle
                                 </button>
                             )}
@@ -199,9 +200,9 @@ function ContentDetail() {
                                 href={`https://www.hdfilmcehennemi.com/ara/?q=${encodeURIComponent(title)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 rounded-full font-bold text-lg transition flex items-center gap-2 shadow-lg hover:scale-105 transform"
+                                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2.5 md:px-8 md:py-3 rounded-lg md:rounded-full font-bold text-sm md:text-lg transition flex items-center gap-2 shadow-lg hover:scale-105 transform"
                             >
-                                <FaPlay />
+                                <FaPlay className="text-sm md:text-base" />
                                 Hemen İzle
                             </a>
                         </div>
