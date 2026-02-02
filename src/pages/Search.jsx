@@ -19,6 +19,7 @@ function Search() {
   const [recommendationMode, setRecommendationMode] = useState(false);
   const [recommendationSource, setRecommendationSource] = useState(null);
   const [myListMap, setMyListMap] = useState({});
+  const [libraryStatusMap, setLibraryStatusMap] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [initialModalData, setInitialModalData] = useState(null);
@@ -41,12 +42,15 @@ function Search() {
     const q = query(collection(db, "user_lists"), where("userId", "==", user.uid));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const map = {};
+      const statusMap = {};
       snapshot.docs.forEach(doc => {
         const data = doc.data();
         const key = String(data.tmdbId || data.id);
         map[key] = { docId: doc.id, ...data };
+        statusMap[key] = data.status;
       });
       setMyListMap(map);
+      setLibraryStatusMap(statusMap);
     });
     return () => unsubscribe();
   }, [user]);
@@ -171,6 +175,16 @@ function Search() {
     } catch (error) { console.error(error); toast.error("Bir hata oluştu."); }
   };
 
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'completed': return 'Bitirildi';
+      case 'planned': return 'İzlenecek';
+      case 'watching': return 'İzleniyor';
+      case 'dropped': return 'Ara Verildi';
+      default: return 'Listende';
+    }
+  };
+
   return (
     <div className="bg-black min-h-screen text-white pb-20 font-sans">
       <Header />
@@ -216,6 +230,8 @@ function Search() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-10">
           {filteredContent.map((item) => {
             const isAdded = !!myListMap[String(item.id)];
+            const itemStatus = libraryStatusMap[String(item.id)];
+
             return (
               <div
                 key={item.id}
@@ -233,7 +249,7 @@ function Search() {
                     {item.overview && <p className="text-gray-400 text-xs line-clamp-3 mb-4 px-1 leading-relaxed">{item.overview}</p>}
                     <div className="mb-4 transform scale-105"><ContentDetails id={item.id} type={item.media_type || type} /></div>
                     {isAdded ? (
-                      <button onClick={(e) => { e.stopPropagation(); openModal(item); }} className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 md:px-8 md:py-3 rounded-full font-bold text-xs md:text-lg transition flex items-center justify-center gap-2 shadow-lg group-hover:scale-105"><span className="text-sm md:text-2xl leading-none">✓</span><span>Listende</span></button>
+                      <button onClick={(e) => { e.stopPropagation(); openModal(item); }} className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 md:px-8 md:py-3 rounded-full font-bold text-xs md:text-lg transition flex items-center justify-center gap-2 shadow-lg group-hover:scale-105"><span className="text-sm md:text-2xl leading-none">✓</span><span>{getStatusLabel(itemStatus)}</span></button>
                     ) : (
                       <button onClick={(e) => { e.stopPropagation(); openModal(item); }} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 md:px-8 md:py-3 rounded-full font-bold text-xs md:text-lg transform hover:scale-105 transition flex items-center justify-center gap-2 shadow-lg"><span className="text-sm md:text-2xl leading-none">+</span><span>Listeme Ekle</span></button>
                     )}

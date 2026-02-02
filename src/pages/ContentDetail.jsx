@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { getMovieDetail, getTVDetail, getCredits, GENRES } from '../services/api';
 import { createSlug } from '../utils';
@@ -19,12 +20,31 @@ function ContentDetail() {
     const [myListMap, setMyListMap] = useState({});
     const [trailerKey, setTrailerKey] = useState(null);
     const [showTrailer, setShowTrailer] = useState(false);
+    const [favActorIds, setFavActorIds] = useState(new Set());
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [initialModalData, setInitialModalData] = useState(null);
 
-    const user = auth.currentUser;
+
+    const [currentUser, setCurrentUser] = useState(null);
+
+    // 1. AUTH LISTENER (Kullanıcı Oturumunu Garantiye Al)
+    useEffect(() => {
+        const authInstance = getAuth();
+        const unsubscribe = onAuthStateChanged(authInstance, (user) => {
+            if (user) {
+                console.log("🟢 Kullanıcı Algılandı:", user.uid);
+                setCurrentUser(user);
+            } else {
+                console.log("🔴 Kullanıcı Yok");
+                setCurrentUser(null);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const user = currentUser; // Mevcut kodun geri kalanı 'user' değişkenini kullanıyor
 
     // 1. KULLANICI LİSTESİNİ DİNLE
     useEffect(() => {
@@ -41,6 +61,31 @@ function ContentDetail() {
         });
         return () => unsubscribe();
     }, [user]);
+
+    // 2. FAVORİ OYUNCULARI DİNLE (GÜNCELLENDİ & HATA AYIKLAMA)
+    useEffect(() => {
+        if (!currentUser) return;
+
+        // ActorDetail.jsx 'user_actors' koleksiyonunu kullanıyor, bu yüzden burası da öyle olmalı.
+        const q = query(collection(db, "user_actors"), where("userId", "==", currentUser.uid));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const ids = new Set();
+            const fetchedIdsForLog = [];
+
+            snapshot.docs.forEach(doc => {
+                const data = doc.data();
+                // ActorDetail.jsx 'id' alanına film/oyuncu ID'sini kaydediyor
+                const actorId = String(data.id || data.actorId);
+                ids.add(actorId);
+                fetchedIdsForLog.push(actorId);
+            });
+
+            console.log("📋 Veritabanından Gelen Favori ID'leri:", fetchedIdsForLog);
+            setFavActorIds(ids);
+        });
+        return () => unsubscribe();
+    }, [currentUser]);
 
     // 2. İÇERİK DETAY VE OYUNCULARI ÇEK
     useEffect(() => {
@@ -119,6 +164,7 @@ function ContentDetail() {
     const originalTitle = content.original_title || content.original_name;
     const releaseDate = content.release_date || content.first_air_date;
     const runtime = content.runtime ? `${content.runtime} dk` : (content.number_of_seasons ? `${content.number_of_seasons} Sezon` : '');
+    const country = content.production_countries && content.production_countries[0] ? content.production_countries[0].name : null;
 
     return (
         <div className="bg-black min-h-screen text-white pb-20 font-sans">
@@ -161,6 +207,12 @@ function ContentDetail() {
                                 <span>{releaseDate?.split('-')[0]}</span>
                                 <span className="hidden md:inline">•</span>
                                 <span>{runtime}</span>
+                                {country && (
+                                    <>
+                                        <span className="hidden md:inline">•</span>
+                                        <span>{country}</span>
+                                    </>
+                                )}
                             </div>
                             <div className="col-span-2 flex justify-center md:justify-start gap-2">
                                 {content.genres?.map(g => (
@@ -220,23 +272,33 @@ function ContentDetail() {
                     <p className="text-gray-500">Oyuncu bilgisi bulunamadı.</p>
                 ) : (
                     <div className="flex gap-6 overflow-x-auto pb-8 custom-scrollbar scroll-smooth">
-                        {cast.map(person => (
-                            <div
-                                key={person.id}
-                                onClick={() => navigate(`/actor/${createSlug(person.id, person.name)}`)}
-                                className="min-w-[120px] w-[120px] md:min-w-[150px] md:w-[150px] cursor-pointer group"
-                            >
-                                <div className="w-full aspect-[2/3] rounded-xl overflow-hidden mb-3 border border-gray-800 group-hover:border-red-600 transition shadow-lg relative">
-                                    <img
-                                        src={person.profile_path ? `https://image.tmdb.org/t/p/w200${person.profile_path}` : 'https://via.placeholder.com/200x300?text=No+Img'}
-                                        alt={person.name}
-                                        className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
-                                    />
+                        {cast.map((person, index) => {
+                            const actorIdString = String(person.id);
+                            const isFav = favActorIds.has(actorIdString);
+
+                            // Sadece ilk oyuncu için log bas (Konsolu kilitlememek için)
+                            if (index === 0) {
+                                console.log(`🔍 Kontrol Ediliyor: ${person.name} (ID: ${actorIdString}) -> Favori mi? ${isFav}`);
+                            }
+
+                            return (
+                                <div
+                                    key={person.id}
+                                    onClick={() => navigate(`/actor/${createSlug(person.id, person.name)}`)}
+                                    className="min-w-[120px] w-[120px] md:min-w-[150px] md:w-[150px] cursor-pointer group"
+                                >
+                                    <div className={`w-full aspect-[2/3] rounded-xl overflow-hidden mb-3 ${isFav ? 'border-2 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'border border-gray-800 group-hover:border-red-600'} transition shadow-lg relative`}>
+                                        <img
+                                            src={person.profile_path ? `https://image.tmdb.org/t/p/w200${person.profile_path}` : 'https://via.placeholder.com/200x300?text=No+Img'}
+                                            alt={person.name}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
+                                        />
+                                    </div>
+                                    <h3 className="text-white font-bold text-sm truncate group-hover:text-red-500 transition">{person.name}</h3>
+                                    <p className="text-gray-400 text-xs truncate">{person.character}</p>
                                 </div>
-                                <h3 className="text-white font-bold text-sm truncate group-hover:text-red-500 transition">{person.name}</h3>
-                                <p className="text-gray-400 text-xs truncate">{person.character}</p>
-                            </div>
-                        ))}
+                            )
+                        })}
                     </div>
                 )}
             </div>

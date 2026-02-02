@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { Toaster } from 'react-hot-toast';
 import Footer from './components/Footer.jsx';
 import MobileNavbar from './components/MobileNavbar.jsx';
+import NewSeasonChecker from './components/NewSeasonChecker.jsx'; // <--- YENİ BİLEŞEN
 
 import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
@@ -35,6 +36,7 @@ function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <NewSeasonChecker /> {/* <--- AKTİF EDİLDİ */}
       <div className="bg-black min-h-screen text-white flex flex-col">
         <Toaster
           position="top-center"
