@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase'; // <--- DB EKLENDİ
 import { deleteDoc, doc } from 'firebase/firestore'; // <--- FIRESTORE EKLENDİ
 import toast from 'react-hot-toast'; // <--- TOAST EKLENDİ
+import { createSlug } from '../utils';
 
 function MovieModal({ isOpen, onClose, movie, onSave, initialData }) {
     const [status, setStatus] = useState('planned');
@@ -48,6 +49,17 @@ function MovieModal({ isOpen, onClose, movie, onSave, initialData }) {
         }
     }, [isOpen, initialData, movie]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     if (!isOpen) return null;
 
     // --- SİLME FONKSİYONU ---
@@ -65,10 +77,10 @@ function MovieModal({ isOpen, onClose, movie, onSave, initialData }) {
     };
 
     // --- OYUNCUYA TIKLAMA FONKSİYONU ---
-    const handleActorClick = (actorName) => {
-        onClose(); // Modalı kapat
-        // Arama sayfasına git ve ismi taşı
-        navigate('/search', { state: { actorSearch: actorName } });
+    // --- OYUNCUYA TIKLAMA FONKSİYONU ---
+    const handleActorClick = (person) => {
+        onClose();
+        navigate(`/actor/${createSlug(person.id, person.name)}`);
     };
 
     const handleSubmit = async () => {
@@ -217,7 +229,7 @@ function MovieModal({ isOpen, onClose, movie, onSave, initialData }) {
                                         {cast.map((person) => (
                                             <div
                                                 key={person.id}
-                                                onClick={() => handleActorClick(person.name)} // <--- TIKLAMA OLAYI
+                                                onClick={() => handleActorClick(person)} // <--- TIKLAMA OLAYI
                                                 className="flex flex-col items-center min-w-[60px] cursor-pointer hover:scale-110 transition group"
                                             >
                                                 <img

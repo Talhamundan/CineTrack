@@ -16,6 +16,7 @@ import SharedList from './pages/SharedList.jsx';
 import Actors from './pages/Actors.jsx';
 import ActorDetail from './pages/ActorDetail.jsx';
 import ContentDetail from './pages/ContentDetail.jsx'; // <--- YENİ İMPORT // <--- YENİ SAYFA // <--- YENİ
+import FeedbackWidget from './components/FeedbackWidget.jsx';
 
 import ScrollToTop from './components/ScrollToTop.jsx';
 
@@ -70,6 +71,9 @@ function App() {
 
         {/* Footer sadece giriş yapmışsa veya paylaşım sayfasında değilse görünsün istenebilir ama şimdilik kalsın */}
         <Footer />
+
+        {/* Feedback Widget for logged in users */}
+        {user && <FeedbackWidget user={user} />}
       </div>
     </BrowserRouter>
   );

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { getPersonDetail, getPersonCredits, GENRES } from '../services/api';
-import { createSlug } from '../utils';
+import { createSlug, getStatusLabel } from '../utils';
 import Header from '../components/Header.jsx';
 import ContentDetails from '../components/ContentDetails.jsx';
 import MovieModal from '../components/MovieModal.jsx';
@@ -272,7 +272,10 @@ function ActorDetail() {
                                             <div className="mb-4 transform scale-105"><ContentDetails id={item.id} type={item.media_type || 'movie'} /></div>
 
                                             {isAdded ? (
-                                                <button onClick={(e) => { e.stopPropagation(); openModal(item); }} className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-bold text-lg transition flex items-center justify-center gap-2 shadow-lg group-hover:scale-105"><span className="text-2xl leading-none">✓</span><span>Listende</span></button>
+                                                <button onClick={(e) => { e.stopPropagation(); openModal(item); }} className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-bold text-lg transition flex items-center justify-center gap-2 shadow-lg group-hover:scale-105">
+                                                    <span className="text-2xl leading-none">✓</span>
+                                                    <span>{getStatusLabel(myListMap[String(item.id)]?.status)}</span>
+                                                </button>
                                             ) : (
                                                 <button onClick={(e) => { e.stopPropagation(); openModal(item); }} className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full font-bold text-lg transform hover:scale-105 transition flex items-center justify-center gap-2 shadow-lg"><span className="text-2xl leading-none">+</span><span>Listeme Ekle</span></button>
                                             )}

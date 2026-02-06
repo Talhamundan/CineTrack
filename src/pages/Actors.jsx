@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot, deleteDoc, doc, addDoc } from 'firebase/firestore';
 import Header from '../components/Header.jsx';
-import { searchActors } from '../services/api'; // <--- YENİ API
+import { searchActors, getPersonCredits } from '../services/api'; // <--- YENİ API
 import toast from 'react-hot-toast';
+import { FaDice, FaSearch } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { createSlug } from '../utils';
 
@@ -13,6 +14,10 @@ function Actors() {
     const [queryText, setQueryText] = useState('');
     const [loading, setLoading] = useState(true);
     const [searching, setSearching] = useState(false);
+
+    // Suggestion State
+    const [isSuggesting, setIsSuggesting] = useState(false);
+
     const navigate = useNavigate(); // <--- BU EKSİKTİ!
 
 
@@ -33,25 +38,28 @@ function Actors() {
         return () => unsubscribe();
     }, [user]);
 
-    // Oyuncu Arama
-    const handleSearch = async (e) => {
-        e.preventDefault();
-        if (!queryText.trim()) return;
+    // Otomatik Arama (Debounce)
+    useEffect(() => {
+        const timeoutId = setTimeout(async () => {
+            if (!queryText.trim()) {
+                setSearchResults([]);
+                return;
+            }
 
-        setSearching(true);
-        try {
-            const results = await searchActors(queryText);
-            // Sadece görseli olanları getirsek daha şık olur
-            const filtered = results.filter(p => p.profile_path);
-            setSearchResults(filtered);
-            if (filtered.length === 0) toast.error("Oyuncu bulunamadı.");
-        } catch (error) {
-            console.error(error);
-            toast.error("Arama sırasında hata oluştu.");
-        } finally {
-            setSearching(false);
-        }
-    };
+            setSearching(true);
+            try {
+                const results = await searchActors(queryText);
+                const filtered = results.filter(p => p.profile_path);
+                setSearchResults(filtered);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setSearching(false);
+            }
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+    }, [queryText]);
 
     // Favori Ekleme / Çıkarma
     const toggleFavorite = async (e, actor) => {
@@ -84,6 +92,51 @@ function Actors() {
     const openActorDetail = (actor) => {
         navigate(`/actor/${createSlug(actor.id, actor.name)}`);
     };
+
+    // --- RASTGELE ÖNERİ FONKSİYONU ---
+    const handleRandomSuggest = async () => {
+        if (myActors.length === 0) {
+            toast("Önce favori oyuncu eklemelisin! 🎭", { icon: '⚠️' });
+            return;
+        }
+
+        setIsSuggesting(true);
+        try {
+            // 1. Rastgele Oyuncu Seç
+            const randomActor = myActors[Math.floor(Math.random() * myActors.length)];
+
+            // 2. Oyuncunun Filmlerini Çek
+            const credits = await getPersonCredits(randomActor.id);
+
+            // 3. Kalite Kontrol (Posterli ve belirli bir popülarite üzeri)
+            const validCredits = credits.filter(m => m.poster_path && (m.vote_count > 50));
+
+            if (validCredits.length === 0) {
+                toast.error(`${randomActor.name} için uygun bir öneri bulamadım, tekrar dene!`);
+                setIsSuggesting(false);
+                return;
+            }
+
+            // 4. Rastgele Film Seç
+            const randomMovie = validCredits[Math.floor(Math.random() * validCredits.length)];
+
+            // 5. Yönlendir
+            const type = randomMovie.media_type === 'tv' ? 'tv' : 'movie';
+            // createSlug fonksiyonunu kullanarak URL oluşturuyoruz
+            const targetUrl = `/details/${type}/${createSlug(randomMovie.id, randomMovie.title || randomMovie.name)}`;
+
+            toast.success(`🚀 Gidiliyor: ${randomActor.name} - ${randomMovie.title || randomMovie.name}`, { duration: 3000 });
+            navigate(targetUrl);
+
+        } catch (error) {
+            console.error(error);
+            toast.error("Şansına küs, bir hata oluştu 😅");
+        } finally {
+            setIsSuggesting(false);
+        }
+    };
+
+
 
     // Yardımcı: Oyuncu Kartı Render
     const renderActorCard = (actor, isFavoriteResult = false) => {
@@ -130,43 +183,56 @@ function Actors() {
             <div className="p-8 max-w-[1600px] mx-auto flex flex-col gap-12">
 
                 {/* BÖLÜM 1: OYUNCU ARAMA */}
-                <div className="bg-gray-900/50 p-8 rounded-3xl border border-gray-800">
-                    <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                        <span>🔍</span> Oyuncu Ara
-                    </h2>
+                {/* HEADER ROW */}
+                <div className="flex flex-col md:flex-row justify-between items-center gap-6 mt-4">
+                    <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">
+                        Oyuncular
+                    </h1>
 
-                    <form onSubmit={handleSearch} className="flex gap-4 mb-8">
-                        <input
-                            type="text"
-                            placeholder="Oyuncu adı girin (Örn: Cem Yılmaz)..."
-                            className="flex-1 bg-black text-white p-4 rounded-xl outline-none focus:ring-2 ring-yellow-500 border border-gray-700 text-lg placeholder-gray-600 transition"
-                            value={queryText}
-                            onChange={(e) => setQueryText(e.target.value)}
-                        />
-                        <button
-                            type="submit"
-                            disabled={searching}
-                            className="bg-yellow-500 hover:bg-yellow-400 text-black px-8 py-4 rounded-xl font-bold text-lg transition disabled:opacity-50"
-                        >
-                            {searching ? 'Aranıyor...' : 'Ara'}
-                        </button>
-                    </form>
+                    <button
+                        onClick={handleRandomSuggest}
+                        disabled={isSuggesting}
+                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:shadow-purple-500/30 transition-all hover:scale-105 flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <FaDice className={`text-xl ${isSuggesting ? 'animate-spin' : ''}`} />
+                        <span>{isSuggesting ? 'Seçiliyor...' : 'Bana Bir Şey Öner'}</span>
+                    </button>
+                </div>
 
-                    {/* Arama Sonuçları */}
-                    {searchResults.length > 0 && (
-                        <div>
-                            <h3 className="text-gray-400 mb-4 text-sm font-bold uppercase tracking-widest">Sonuçlar</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                                {searchResults.map(actor => renderActorCard(actor))}
-                            </div>
+                {/* ORTALI ARAMA ÇUBUĞU */}
+                <div className="max-w-3xl mx-auto w-full relative group z-10">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-indigo-600/20 rounded-full blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500"></div>
+                    <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 text-xl group-focus-within:text-white transition-colors z-20" />
+                    <input
+                        type="text"
+                        placeholder="Hangi oyuncuyu arıyorsun?"
+                        className="w-full bg-zinc-900/80 backdrop-blur-xl border border-zinc-700 rounded-full py-5 pl-16 pr-6 text-white text-lg placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 shadow-2xl transition-all relative z-10"
+                        value={queryText}
+                        onChange={(e) => setQueryText(e.target.value)}
+                    />
+                    {searching && (
+                        <div className="absolute right-6 top-1/2 -translate-y-1/2 z-20">
+                            <div className="animate-spin h-5 w-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
                         </div>
                     )}
                 </div>
 
+                {/* ARAMA SONUÇLARI */}
+                {searchResults.length > 0 && (
+                    <div className="animate-fade-in-up">
+                        <h3 className="text-gray-400 mb-6 text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                            <span>🔍</span> Arama Sonuçları
+                        </h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
+                            {searchResults.map(actor => renderActorCard(actor))}
+                        </div>
+                    </div>
+                )}
+
                 {/* BÖLÜM 2: FAVORİ OYUNCULARIM */}
-                <div>
-                    <h2 className="text-3xl font-bold text-yellow-500 mb-8 flex items-center gap-3 border-b border-gray-800 pb-4">
-                        <span>🌟</span> Favori Oyuncularım <span className="text-gray-500 text-lg font-normal">({myActors.length})</span>
+                <div className="border-t border-gray-800 pt-12">
+                    <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 flex items-center gap-3">
+                        <span className="text-yellow-500">🌟</span> Favori Oyuncularım <span className="text-gray-500 text-lg font-normal">({myActors.length})</span>
                     </h2>
 
                     {loading ? (
@@ -176,14 +242,13 @@ function Actors() {
                             Henüz favori listenize kimseyi eklemediniz. Yukarıdan arayarak ekleyebilirsiniz.
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
                             {myActors.map(actor => renderActorCard(actor, true))}
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* MODAL ARTIK YOK */}
         </div>
     );
 }
